@@ -698,8 +698,7 @@ def create_app():
             "Unable to retrieve cluster name from metadata server %s.", metadata_server)
 
     # get GKE pod name
-    pod_name = "unknown"
-    pod_name = socket.gethostname()
+    pod_name = os.getenv("POD_NAME") or socket.gethostname()
 
     # get GKE node zone
     pod_zone = os.getenv('POD_ZONE', 'unknown')
