@@ -227,6 +227,35 @@ class TransactionValidatorTest {
         }
     }
 
+    // Ticket PAY-1042: $10,000 per-transfer limit. Amounts are in cents.
+    private static final Integer TRANSFER_LIMIT_CENTS = 1_000_000;
+
+    @Test
+    @DisplayName("Given amount is at the $10,000 limit, IllegalArgumentException is thrown")
+    void validationFail_WhenTransactionAmount_IsAtTransferLimit() {
+        // Given
+        when(transaction.getAmount()).thenReturn(TRANSFER_LIMIT_CENTS);
+
+        // When / Then
+        assertThrows(IllegalArgumentException.class, () -> {
+            transactionValidator.validateTransaction(
+                LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
+        });
+    }
+
+    @Test
+    @DisplayName("Given amount is one cent under the $10,000 limit, validation passes")
+    void validateTransactionSuccess_WhenTransactionAmount_IsJustUnderTransferLimit() {
+        // Given
+        when(transaction.getAmount()).thenReturn(TRANSFER_LIMIT_CENTS - 1);
+
+        // When / Then
+        assertDoesNotThrow(() -> {
+            transactionValidator.validateTransaction(
+                LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
+        });
+    }
+
     void assertInvalidNumberHelper() {
         // When
         IllegalArgumentException exceptionThrown = assertThrows(
