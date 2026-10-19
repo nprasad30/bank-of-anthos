@@ -2,9 +2,9 @@
 
 ## Commands
 - Python tests: cd src/accounts/userservice && uv run pytest -q tests
-- Java tests: ./mvnw -pl src/ledger/ledgerwriter test
+- Java tests (summary only): ./mvnw -q -pl src/ledger/ledgerwriter test 2>&1 | grep -E "Tests run:|BUILD|FAIL|expected"
 
 ## Rules
-- Never edit kubernetes-manifests/, iac/, or any k8s/ folder. Platform engineering owns them.
 - Amounts are stored in cents (int), never dollars.
 - Every change to the ledger comes with a test.
+- Error messages live in ExceptionMessages, never inline strings.
