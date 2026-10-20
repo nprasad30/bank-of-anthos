@@ -1,7 +1,7 @@
 # Demo run sheet (Bank of Anthos)
 
 Reset between runs:  git reset --hard demo-clean && git clean -fd
-Start:               claude   (this repo starts in manual mode via .claude/settings.json; the status line must NOT say "auto mode")
+Start:               claude --permission-mode default   (manual mode guaranteed; status line must NOT say "auto mode"; press 1 on prompts, never 2)
 Backend:             Claude Max login; ANTHROPIC_API_KEY only as a fallback.
 
 ## Move 1 (3 min): understand it and draw it
