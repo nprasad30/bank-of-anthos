@@ -29,6 +29,8 @@ import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_SEND_TO_SELF;
 import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_INVALID_AMOUNT;
+import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
+        EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -78,7 +80,7 @@ class TransactionValidatorTest {
     };
 
     private static final Integer[] VALID_TRANSACTION_AMOUNT = {
-        1, VALID_AMOUNT, Integer.MAX_VALUE
+        1, VALID_AMOUNT, 999_999
     };
 
     private static final Integer[] INVALID_TRANSACTION_AMOUNT = {
@@ -88,7 +90,7 @@ class TransactionValidatorTest {
     @BeforeEach
     void setUp() {
         initMocks(this);
-        transactionValidator = new TransactionValidator();
+        transactionValidator = new TransactionValidator(TRANSFER_LIMIT_CENTS);
 
         when(transaction.getFromAccountNum()).thenReturn(AUTHED_ACCOUNT_NUM);
         when(transaction.getFromRoutingNum()).thenReturn(LOCAL_ROUTING_NUM);
@@ -236,11 +238,16 @@ class TransactionValidatorTest {
         // Given
         when(transaction.getAmount()).thenReturn(TRANSFER_LIMIT_CENTS);
 
-        // When / Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            transactionValidator.validateTransaction(
-                LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
-        });
+        // When
+        IllegalArgumentException exceptionThrown = assertThrows(
+            IllegalArgumentException.class, () -> {
+                transactionValidator.validateTransaction(
+                    LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
+            });
+
+        // Then
+        assertEquals(EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED,
+            exceptionThrown.getMessage());
     }
 
     @Test
