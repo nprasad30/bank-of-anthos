@@ -34,6 +34,9 @@ public class ExceptionMessages {
             EXCEPTION_MESSAGE_SEND_TO_SELF = "can't send to self";
     public static final String
             EXCEPTION_MESSAGE_INVALID_AMOUNT = "invalid amount";
+    public static final String
+            EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED =
+            "transfer amount exceeds the per-transfer limit";
     public static final String EXCEPTION_MESSAGE_DUPLICATE_TRANSACTION =
             "duplicate transaction uuid";
 }

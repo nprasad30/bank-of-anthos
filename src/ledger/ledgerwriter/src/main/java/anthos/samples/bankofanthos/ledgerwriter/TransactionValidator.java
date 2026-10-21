@@ -18,6 +18,7 @@ package anthos.samples.bankofanthos.ledgerwriter;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.regex.Pattern;
@@ -30,6 +31,8 @@ import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_SEND_TO_SELF;
 import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_INVALID_AMOUNT;
+import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
+        EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED;
 
 
 /**
@@ -45,14 +48,31 @@ public class TransactionValidator {
     // route numbers should be 9 digits between 0 and 9
     private static final Pattern ROUTE_REGEX = Pattern.compile("^[0-9]{9}$");
 
+    // default per-transfer limit in cents ($10,000.00)
+    static final int DEFAULT_TRANSFER_LIMIT_CENTS = 1_000_000;
+
     private static final Logger LOGGER =
         LogManager.getLogger(TransactionValidator.class);
+
+    // transfers at or above this amount (in cents) are rejected
+    @Value("${TRANSFER_LIMIT_CENTS:1000000}")
+    private int transferLimitCents = DEFAULT_TRANSFER_LIMIT_CENTS;
+
+    /** Uses the default transfer limit, or the injected environment value. */
+    public TransactionValidator() {
+    }
+
+    /** Overrides the transfer limit (in cents); used by tests. */
+    TransactionValidator(int transferLimitCents) {
+        this.transferLimitCents = transferLimitCents;
+    }
 
     /**
      *   - Ensure sender is the same user authenticated by auth token
      *   - Ensure account and routing numbers are in the correct format
      *   - Ensure sender and receiver are different accounts
      *   - Ensure amount is positive
+     *   - Ensure amount is below the per-transfer limit
      *
      * @param authedAccount  the currently authenticated user account
      * @param transaction    the transaction object
@@ -98,6 +118,12 @@ public class TransactionValidator {
             LOGGER.error("Invalid transaction: Transaction amount invalid");
             throw new IllegalArgumentException(
                     EXCEPTION_MESSAGE_INVALID_AMOUNT);
+        }
+        // Ensure amount is under the per-transfer limit.
+        if (amount >= transferLimitCents) {
+            LOGGER.error("Invalid transaction: Transfer limit exceeded");
+            throw new IllegalArgumentException(
+                    EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED);
         }
     }
 }
