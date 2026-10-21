@@ -30,6 +30,8 @@ import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_SEND_TO_SELF;
 import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_INVALID_AMOUNT;
+import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
+        EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED;
 
 
 /**
@@ -47,6 +49,31 @@ public class TransactionValidator {
 
     private static final Logger LOGGER =
         LogManager.getLogger(TransactionValidator.class);
+
+    // per-transfer limit in cents ($10,000.00 by default)
+    static final int DEFAULT_TRANSFER_LIMIT_CENTS = 1000000;
+    private static final String TRANSFER_LIMIT_ENV = "TRANSFER_LIMIT_CENTS";
+
+    private final int transferLimitCents;
+
+    /**
+     * Reads the transfer limit from the TRANSFER_LIMIT_CENTS environment
+     * variable, falling back to the default when it is unset.
+     */
+    public TransactionValidator() {
+        this(readTransferLimit(System.getenv(TRANSFER_LIMIT_ENV)));
+    }
+
+    TransactionValidator(int transferLimitCents) {
+        this.transferLimitCents = transferLimitCents;
+    }
+
+    static int readTransferLimit(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return DEFAULT_TRANSFER_LIMIT_CENTS;
+        }
+        return Integer.parseInt(value.trim());
+    }
 
     /**
      *   - Ensure sender is the same user authenticated by auth token
@@ -98,6 +125,12 @@ public class TransactionValidator {
             LOGGER.error("Invalid transaction: Transaction amount invalid");
             throw new IllegalArgumentException(
                     EXCEPTION_MESSAGE_INVALID_AMOUNT);
+        }
+        // Ensure amount is below the per-transfer limit.
+        if (amount >= transferLimitCents) {
+            LOGGER.error("Invalid transaction: Amount at or above limit");
+            throw new IllegalArgumentException(
+                    EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED);
         }
     }
 }
