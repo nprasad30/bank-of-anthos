@@ -29,6 +29,8 @@ import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_SEND_TO_SELF;
 import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
         EXCEPTION_MESSAGE_INVALID_AMOUNT;
+import static anthos.samples.bankofanthos.ledgerwriter.ExceptionMessages.
+        EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -78,7 +80,7 @@ class TransactionValidatorTest {
     };
 
     private static final Integer[] VALID_TRANSACTION_AMOUNT = {
-        1, VALID_AMOUNT, Integer.MAX_VALUE
+        1, VALID_AMOUNT, 999_999
     };
 
     private static final Integer[] INVALID_TRANSACTION_AMOUNT = {
@@ -236,11 +238,44 @@ class TransactionValidatorTest {
         // Given
         when(transaction.getAmount()).thenReturn(TRANSFER_LIMIT_CENTS);
 
+        // When
+        IllegalArgumentException exceptionThrown = assertThrows(
+            IllegalArgumentException.class, () -> {
+                transactionValidator.validateTransaction(
+                    LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
+            });
+
+        // Then
+        assertEquals(EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED,
+            exceptionThrown.getMessage());
+    }
+
+    @Test
+    @DisplayName("Given a configured transfer limit, amounts at or above it are rejected")
+    void validationFail_WhenTransactionAmount_IsAtConfiguredTransferLimit() {
+        // Given
+        TransactionValidator customValidator = new TransactionValidator(50_000);
+        when(transaction.getAmount()).thenReturn(49_999);
+
         // When / Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            transactionValidator.validateTransaction(
+        assertDoesNotThrow(() -> {
+            customValidator.validateTransaction(
                 LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
         });
+
+        // Given
+        when(transaction.getAmount()).thenReturn(50_000);
+
+        // When
+        IllegalArgumentException exceptionThrown = assertThrows(
+            IllegalArgumentException.class, () -> {
+                customValidator.validateTransaction(
+                    LOCAL_ROUTING_NUM, AUTHED_ACCOUNT_NUM, transaction);
+            });
+
+        // Then
+        assertEquals(EXCEPTION_MESSAGE_TRANSFER_LIMIT_EXCEEDED,
+            exceptionThrown.getMessage());
     }
 
     @Test
